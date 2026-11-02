@@ -56,6 +56,11 @@ struct sc_key_processor_ops {
     void
     (*process_text)(struct sc_key_processor *kp,
                     const struct sc_text_event *event);
+
+    // Optional HID operation: clear cached keys and queue an all-up report.
+    // This does not guarantee delivery after transport failure or shutdown.
+    void
+    (*release_all)(struct sc_key_processor *kp);
 };
 
 #endif

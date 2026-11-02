@@ -256,6 +256,26 @@ It may help to force a value for \fB\-\-min\-size\-alignment\fR.
 Same as \fB\-\-keyboard=uhid\fR, or \fB\-\-keyboard=aoa\fR if \fB\-\-otg\fR is set.
 
 .TP
+.B \-\-immersive
+Request immersive host keyboard capture. Linux only; requires a window, device keyboard control and a HID keyboard (\fB\-K\fR, \fB\-\-keyboard=uhid\fR or \fB\-\-keyboard=aoa\fR). Capture starts when the window is first focused. Press the Host key (default right Ctrl) while the window is focused to release or recapture. It can be changed with \fB\-\-host\-key\fR.
+Focus loss, hiding or pausing the window, or device disconnection releases capture; focus regain or resume does not recapture automatically. While active, scrcpy keyboard shortcuts are forwarded to the device; while released, normal scrcpy shortcuts work.
+If a relative HID mouse is enabled, the Host key controls both keyboard and mouse capture. Relative mouse events are suppressed while released; a mouse click does not recapture.
+
+While capture is active, SDL text input is paused and its previous state is
+restored on release. Android-side input method handling is unchanged; HID
+continues sending physical key events. Caps Lock, non-immersive use and SDK
+keyboard input are unchanged. Desktop-global shortcuts and input-method menus
+may still be handled by the window system or compositor.
+
+The window title shows scrcpy's capture state, but does not guarantee that all host shortcuts are intercepted. Linux window-system and compositor policy may refuse capture or retain shortcuts.
+Wayland behavior depends on compositor support and policy; XWayland grabs may also be restricted (for example, by Mutter's \fBxwayland\-allow\-grabs\fR setting). This feature is not supported on Windows or macOS.
+
+.TP
+.BI "\-\-host\-key " key
+Select the key reserved for toggling immersive capture. Requires \fB\-\-immersive\fR.
+Possible values are "lctrl", "rctrl", "lalt", "ralt", "lsuper" and "rsuper". Default is "rctrl" (right Ctrl). The toggle works only while the scrcpy window is focused. A desktop may intercept an Alt or Super Host key while capture is released; prefer right Ctrl or another modifier not used by a desktop shortcut.
+
+.TP
 .B \-\-keep\-active
 Keep the screen on by simulating user activity.
 

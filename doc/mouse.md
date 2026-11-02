@@ -38,6 +38,13 @@ The [shortcut mod](shortcuts.md) (either <kbd>Alt</kbd> or <kbd>Super</kbd> by
 default) toggle (disable or enable) the mouse capture. Use one of them to give
 the control of the mouse back to the computer.
 
+With [immersive keyboard capture](keyboard.md#immersive-host-keyboard-capture),
+the Host key replaces this toggle and controls keyboard and relative mouse
+capture together. While released, relative mouse motion, buttons and wheel
+events are suppressed until the Host key recaptures; a click does not recapture.
+This applies only when a relative HID mouse is enabled. Immersive keyboard
+capture itself does not require `-M`.
+
 
 ### UHID
 

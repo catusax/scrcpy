@@ -68,6 +68,12 @@ bool
 sc_controller_push_msg(struct sc_controller *controller,
                        const struct sc_control_msg *msg);
 
+// Bypass the soft queue limit for transition reports; ordinary input still drops.
+// Allocation may fail, and enqueueing does not guarantee transport delivery.
+bool
+sc_controller_push_msg_critical(struct sc_controller *controller,
+                                const struct sc_control_msg *msg);
+
 void
 sc_controller_resize_display(struct sc_controller *controller,
                              uint16_t width, uint16_t height);

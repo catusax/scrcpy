@@ -37,6 +37,10 @@ void
 sc_hid_keyboard_init(struct sc_hid_keyboard *hid);
 
 void
+sc_hid_keyboard_generate_release_all(struct sc_hid_keyboard *hid,
+                                      struct sc_hid_input *hid_input);
+
+void
 sc_hid_keyboard_generate_open(struct sc_hid_open *hid_open);
 
 void

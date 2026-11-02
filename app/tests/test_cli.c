@@ -149,6 +149,66 @@ static void test_parse_shortcut_mods(void) {
     assert(!ok);
 }
 
+static void test_immersive(void) {
+    struct {
+        const char *mode;
+        bool expected;
+    } modes[] = {
+        {"--keyboard=uhid", true},
+        {"--keyboard=aoa", true},
+        {"--keyboard=sdk", false},
+        {"--keyboard=disabled", false},
+    };
+    for (size_t i = 0; i < ARRAY_LEN(modes); ++i) {
+        struct scrcpy_cli_args args = {.opts = scrcpy_options_default};
+        char *argv[] = {"scrcpy", "--immersive", (char *) modes[i].mode};
+        bool ok = scrcpy_parse_args(&args, ARRAY_LEN(argv), argv);
+#ifdef __linux__
+# ifndef HAVE_USB
+        if (!strcmp(modes[i].mode, "--keyboard=aoa")) {
+            assert(!ok);
+            continue;
+        }
+# endif
+        assert(ok == modes[i].expected);
+        if (ok) {
+            assert(args.opts.immersive);
+            assert(args.opts.host_key == SC_SHORTCUT_MOD_RCTRL);
+        }
+#else
+        assert(!ok);
+#endif
+    }
+#ifdef __linux__
+    const char *keys[] = {"lctrl", "rctrl", "lalt", "ralt", "lsuper", "rsuper"};
+    for (size_t i = 0; i < ARRAY_LEN(keys); ++i) {
+        struct scrcpy_cli_args args = {.opts = scrcpy_options_default};
+        char *argv[] = {"scrcpy", "-K", "--immersive", "--host-key",
+                        (char *) keys[i]};
+        assert(scrcpy_parse_args(&args, ARRAY_LEN(argv), argv));
+        assert(args.opts.host_key == (1u << i));
+    }
+# ifdef HAVE_USB
+    struct scrcpy_cli_args otg = {.opts = scrcpy_options_default};
+    char *otg_argv[] = {"scrcpy", "--otg", "-K", "--immersive"};
+    assert(scrcpy_parse_args(&otg, ARRAY_LEN(otg_argv), otg_argv));
+    assert(otg.opts.keyboard_input_mode == SC_KEYBOARD_INPUT_MODE_AOA);
+# endif
+#endif
+    const char *invalid[] = {
+        "--no-control", "--no-window",
+        "--host-key=rctrl,lctrl", "--host-key=", "--host-key=lctrl+rctrl",
+    };
+    for (size_t i = 0; i < ARRAY_LEN(invalid); ++i) {
+        struct scrcpy_cli_args args = {.opts = scrcpy_options_default};
+        char *argv[] = {"scrcpy", "-K", "--immersive", (char *) invalid[i]};
+        assert(!scrcpy_parse_args(&args, ARRAY_LEN(argv), argv));
+    }
+    struct scrcpy_cli_args args = {.opts = scrcpy_options_default};
+    char *argv[] = {"scrcpy", "--host-key=rctrl"};
+    assert(!scrcpy_parse_args(&args, ARRAY_LEN(argv), argv));
+}
+
 int main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
@@ -158,5 +218,6 @@ int main(int argc, char *argv[]) {
     test_options();
     test_options2();
     test_parse_shortcut_mods();
+    test_immersive();
     return 0;
 }

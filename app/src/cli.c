@@ -39,6 +39,8 @@ enum {
     OPT_FORCE_ADB_FORWARD,
     OPT_DISABLE_SCREENSAVER,
     OPT_SHORTCUT_MOD,
+    OPT_IMMERSIVE,
+    OPT_HOST_KEY,
     OPT_NO_KEY_REPEAT,
     OPT_LEGACY_PASTE,
     OPT_VIDEO_ENCODER,
@@ -873,6 +875,25 @@ static const struct sc_option options[] = {
         .argdesc = "seconds",
         .text = "Set the screen off timeout while scrcpy is running (restore "
                 "the initial value on exit).",
+    },
+    {
+        .longopt_id = OPT_IMMERSIVE,
+        .longopt = "immersive",
+        .text = "Capture the host keyboard and forward shortcuts to the device "
+                "(Linux only, requires a HID keyboard, e.g. -K).\n"
+                "Capture starts when the window is first focused. Press the "
+                "Host key to release or recapture; focus loss releases capture "
+                "without automatically recapturing. The window title shows "
+                "capture status. Desktop/compositor policy may limit capture.",
+    },
+    {
+        .longopt_id = OPT_HOST_KEY,
+        .longopt = "host-key",
+        .argdesc = "key",
+        .text = "Select the key reserved for toggling immersive capture.\n"
+                "Requires --immersive. Possible keys are \"lctrl\", \"rctrl\", "
+                "\"lalt\", \"ralt\", \"lsuper\" and \"rsuper\".\n"
+                "Default is \"rctrl\" (right Ctrl).",
     },
     {
         .longopt_id = OPT_SHORTCUT_MOD,
@@ -2551,6 +2572,7 @@ static bool
 parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
                        const char *optstring, const struct option *longopts) {
     struct scrcpy_options *opts = &args->opts;
+    bool host_key_explicit = false;
 
     optind = 0; // reset to start from the first argument in tests
 
@@ -2773,6 +2795,17 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
                 break;
             case OPT_DISABLE_SCREENSAVER:
                 opts->disable_screensaver = true;
+                break;
+            case OPT_IMMERSIVE:
+                opts->immersive = true;
+                break;
+            case OPT_HOST_KEY:
+                opts->host_key = parse_shortcut_mods_item(optarg,
+                                                         strlen(optarg));
+                if (!opts->host_key) {
+                    return false;
+                }
+                host_key_explicit = true;
                 break;
             case OPT_SHORTCUT_MOD:
                 if (!parse_shortcut_mods(optarg, &opts->shortcut_mods)) {
@@ -3022,6 +3055,17 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
         return false;
     }
 
+    if (host_key_explicit && !opts->immersive) {
+        LOGE("--host-key requires --immersive");
+        return false;
+    }
+#ifndef __linux__
+    if (opts->immersive) {
+        LOGE("--immersive is currently supported only on Linux");
+        return false;
+    }
+#endif
+
     // If a TCP/IP address is provided, then tcpip must be enabled
     assert(opts->tcpip || !opts->tcpip_dst);
 
@@ -3170,6 +3214,20 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
         if (opts->gamepad_input_mode == SC_GAMEPAD_INPUT_MODE_UHID_OR_AOA) {
             opts->gamepad_input_mode = otg ? SC_GAMEPAD_INPUT_MODE_AOA
                                            : SC_GAMEPAD_INPUT_MODE_UHID;
+        }
+    }
+
+    if (opts->immersive) {
+        if (!opts->window || !opts->control
+                || opts->video_source != SC_VIDEO_SOURCE_DISPLAY) {
+            LOGE("--immersive requires a window and device keyboard control");
+            return false;
+        }
+        if (opts->keyboard_input_mode != SC_KEYBOARD_INPUT_MODE_UHID
+                && opts->keyboard_input_mode != SC_KEYBOARD_INPUT_MODE_AOA) {
+            LOGE("--immersive requires a HID keyboard (-K, --keyboard=uhid "
+                 "or --keyboard=aoa)");
+            return false;
         }
     }
 

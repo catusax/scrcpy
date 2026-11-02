@@ -294,6 +294,8 @@ struct scrcpy_options {
     uint32_t tunnel_host;
     uint16_t tunnel_port;
     uint8_t shortcut_mods; // OR of enum sc_shortcut_mod values
+    uint8_t host_key; // one enum sc_shortcut_mod value
+    bool immersive;
     uint8_t min_size_alignment;
     uint16_t max_size;
     uint32_t video_bit_rate;

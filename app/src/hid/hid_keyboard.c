@@ -246,6 +246,15 @@ sc_hid_keyboard_init(struct sc_hid_keyboard *hid) {
     memset(hid->keys, false, SC_HID_KEYBOARD_KEYS);
 }
 
+void
+sc_hid_keyboard_generate_release_all(struct sc_hid_keyboard *hid,
+                                      struct sc_hid_input *hid_input) {
+    // Clear the local cache too, or the next key would resurrect held keys.
+    // The empty input report releases momentary keys, not Caps/Num lock state.
+    sc_hid_keyboard_init(hid);
+    sc_hid_keyboard_input_init(hid_input);
+}
+
 static inline bool
 scancode_is_modifier(enum sc_scancode scancode) {
     return scancode >= SC_SCANCODE_LCTRL && scancode <= SC_SCANCODE_RGUI;

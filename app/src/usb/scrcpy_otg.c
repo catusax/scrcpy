@@ -222,6 +222,8 @@ scrcpy_otg(struct scrcpy_options *options) {
         .legacy_paste = false,
         .clipboard_autosync = false,
         .shortcut_mods = options->shortcut_mods,
+        .immersive = options->immersive,
+        .host_key = options->host_key,
         .window_title = window_title,
         .always_on_top = options->always_on_top,
         .window_x = options->window_x,
@@ -249,6 +251,9 @@ scrcpy_otg(struct scrcpy_options *options) {
     disconnected = ret == SCRCPY_EXIT_DISCONNECTED;
 
 end:
+    if (screen_initialized) {
+        sc_immersive_disconnect(&s->screen.immersive);
+    }
     if (aoa_started) {
         sc_aoa_stop(&s->aoa);
     }

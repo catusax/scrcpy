@@ -826,6 +826,8 @@ aoa_complete:
             .legacy_paste = options->legacy_paste,
             .clipboard_autosync = options->clipboard_autosync,
             .shortcut_mods = options->shortcut_mods,
+            .immersive = options->immersive,
+            .host_key = options->host_key,
             .window_title = window_title,
             .always_on_top = options->always_on_top,
             .window_x = options->window_x,
@@ -1045,6 +1047,10 @@ aoa_complete:
     disconnected = ret == SCRCPY_EXIT_DISCONNECTED;
 
 end:
+    if (screen_initialized) {
+        // Release OS capture before stopping any guest transport.
+        sc_immersive_disconnect(&s->screen.immersive);
+    }
     if (timeout_started) {
         sc_timeout_stop(&s->timeout);
     }

@@ -22,6 +22,7 @@ src = [
     'src/frame_buffer.c',
     'src/hwdec.c',
     'src/icon.c',
+    'src/immersive.c',
     'src/input_manager.c',
     'src/keyboard_sdk.c',
     'src/mouse_capture.c',
@@ -268,7 +269,40 @@ endif
 
 # do not build tests in release (assertions would not be executed at all)
 if get_option('buildtype') == 'debug'
+    keyboard_release_sources = [
+        'tests/test_keyboard_release.c',
+        'src/controller.c',
+        'src/control_msg.c',
+        'src/receiver.c',
+        'src/device_msg.c',
+        'src/events.c',
+        'src/hid/hid_keyboard.c',
+        'src/uhid/keyboard_uhid.c',
+        'src/uhid/uhid_output.c',
+        'src/util/acksync.c',
+        'src/util/log.c',
+        'src/util/memory.c',
+        'src/util/net.c',
+        'src/util/str.c',
+        'src/util/strbuf.c',
+        'src/util/thread.c',
+        'src/util/tick.c',
+    ]
+    if usb_support
+        keyboard_release_sources += [
+            'src/usb/aoa_hid.c',
+            'src/usb/keyboard_aoa.c',
+            'src/usb/usb.c',
+        ]
+    endif
     tests = [
+        ['test_keyboard_release', keyboard_release_sources],
+        ['test_immersive', [
+            'tests/test_immersive.c',
+            'src/immersive.c',
+            'src/hid/hid_keyboard.c',
+            'src/util/log.c',
+        ]],
         ['test_adb_parser', [
             'tests/test_adb_parser.c',
             'src/adb/adb_device.c',

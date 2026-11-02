@@ -15,6 +15,7 @@
 #include "disconnect.h"
 #include "fps_counter.h"
 #include "frame_buffer.h"
+#include "immersive.h"
 #include "input_manager.h"
 #include "mouse_capture.h"
 #include "options.h"
@@ -51,6 +52,7 @@ struct sc_screen {
     struct sc_texture tex;
     struct sc_input_manager im;
     struct sc_mouse_capture mc; // only used in mouse relative mode
+    struct sc_immersive immersive;
     struct sc_fps_counter fps_counter;
 
     struct sc_mutex mutex;
@@ -128,6 +130,8 @@ struct sc_screen_params {
     bool legacy_paste;
     bool clipboard_autosync;
     uint8_t shortcut_mods; // OR of enum sc_shortcut_mod values
+    bool immersive;
+    uint8_t host_key;
 
     const char *window_title;
     bool always_on_top;

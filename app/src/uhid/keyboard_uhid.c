@@ -17,7 +17,8 @@
 
 static void
 sc_keyboard_uhid_send_input(struct sc_keyboard_uhid *kb,
-                            const struct sc_hid_input *hid_input) {
+                            const struct sc_hid_input *hid_input,
+                            bool critical) {
     struct sc_control_msg msg;
     msg.type = SC_CONTROL_MSG_TYPE_UHID_INPUT;
     msg.uhid_input.id = hid_input->hid_id;
@@ -26,7 +27,9 @@ sc_keyboard_uhid_send_input(struct sc_keyboard_uhid *kb,
     memcpy(msg.uhid_input.data, hid_input->data, hid_input->size);
     msg.uhid_input.size = hid_input->size;
 
-    if (!sc_controller_push_msg(kb->controller, &msg)) {
+    bool ok = critical ? sc_controller_push_msg_critical(kb->controller, &msg)
+                       : sc_controller_push_msg(kb->controller, &msg);
+    if (!ok) {
         LOGE("Could not push UHID_INPUT message (key)");
     }
 }
@@ -50,7 +53,7 @@ sc_keyboard_uhid_synchronize_mod(struct sc_keyboard_uhid *kb) {
 
         LOGV("HID keyboard state synchronized");
 
-        sc_keyboard_uhid_send_input(kb, &hid_input);
+        sc_keyboard_uhid_send_input(kb, &hid_input, false);
     }
 }
 
@@ -83,8 +86,16 @@ sc_key_processor_process_key(struct sc_key_processor *kp,
             // change the modifiers)
             sc_keyboard_uhid_synchronize_mod(kb);
         }
-        sc_keyboard_uhid_send_input(kb, &hid_input);
+        sc_keyboard_uhid_send_input(kb, &hid_input, false);
     }
+}
+
+static void
+sc_key_processor_release_all(struct sc_key_processor *kp) {
+    struct sc_keyboard_uhid *kb = DOWNCAST(kp);
+    struct sc_hid_input hid_input;
+    sc_hid_keyboard_generate_release_all(&kb->hid, &hid_input);
+    sc_keyboard_uhid_send_input(kb, &hid_input, true);
 }
 
 static unsigned
@@ -132,6 +143,7 @@ sc_keyboard_uhid_init(struct sc_keyboard_uhid *kb,
         // Never forward text input via HID (all the keys are injected
         // separately)
         .process_text = NULL,
+        .release_all = sc_key_processor_release_all,
     };
 
     // Clipboard synchronization is requested over the same control socket, so

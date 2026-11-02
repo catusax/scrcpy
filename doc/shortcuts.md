@@ -21,6 +21,16 @@ _<kbd>[Super]</kbd> is typically the <kbd>Windows</kbd> or <kbd>Cmd</kbd> key._
 
 [Super]: https://en.wikipedia.org/wiki/Super_key_(keyboard_button)
 
+With [immersive keyboard capture](keyboard.md#immersive-host-keyboard-capture),
+keyboard shortcuts are forwarded to the device while capture is active, rather
+than performing scrcpy actions. The reserved Host key releases or recaptures
+while the scrcpy window is focused. When capture is released, normal scrcpy
+shortcuts work again. Focus loss releases capture; focusing the window again
+does not recapture automatically. Use `--host-key` to select the Host key
+(default `rctrl`); a desktop may intercept a custom Alt or Super Host key while
+capture is released.
+
+
  | Action                                      |   Shortcut
  | ------------------------------------------- |:-----------------------------
  | Quit                                        | <kbd>MOD</kbd>+<kbd>q</kbd>

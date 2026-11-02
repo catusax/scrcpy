@@ -710,6 +710,14 @@ sc_screen_init(struct sc_screen *screen,
     // Initialize even if not used for simplicity
     sc_mouse_capture_init(&screen->mc, screen->window, params->shortcut_mods);
 
+    ok = sc_immersive_init(&screen->immersive, screen->window, params->kp,
+                           params->immersive, params->host_key,
+                           sc_screen_is_relative_mode(screen));
+    if (!ok) {
+        av_frame_free(&screen->frame);
+        goto error_destroy_texture;
+    }
+
 #ifdef CONTINUOUS_RESIZING_WORKAROUND
     if (screen->video) {
         ok = SDL_AddEventWatch(event_watcher, screen);
@@ -740,7 +748,8 @@ sc_screen_init(struct sc_screen *screen,
         screen->window_shown = true;
         sc_sdl_show_window(screen->window);
 
-        if (sc_screen_is_relative_mode(screen)) {
+        sc_immersive_on_shown(&screen->immersive);
+        if (!params->immersive && sc_screen_is_relative_mode(screen)) {
             // Capture mouse immediately if video mirroring is disabled
             sc_mouse_capture_set_active(&screen->mc, true);
         }
@@ -808,10 +817,12 @@ sc_screen_show_initial_window(struct sc_screen *screen) {
     screen->window_shown = true;
     sc_sdl_show_window(screen->window);
     sc_screen_update_content_rect(screen);
+    sc_immersive_on_shown(&screen->immersive);
 }
 
 void
 sc_screen_hide_window(struct sc_screen *screen) {
+    sc_immersive_release(&screen->immersive);
     sc_sdl_hide_window(screen->window);
     screen->window_shown = false;
 }
@@ -838,6 +849,7 @@ sc_screen_join(struct sc_screen *screen) {
 
 void
 sc_screen_destroy(struct sc_screen *screen) {
+    sc_immersive_destroy(&screen->immersive);
 #ifndef NDEBUG
     assert(!screen->open);
 #endif
@@ -1050,6 +1062,7 @@ sc_screen_set_paused(struct sc_screen *screen, bool paused) {
     }
 
     screen->paused = paused;
+    sc_immersive_set_suspended(&screen->immersive, paused);
 }
 
 void
@@ -1170,6 +1183,14 @@ sc_disconnect_on_timeout(struct sc_disconnect *d, void *userdata) {
 
 void
 sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
+    SDL_Event filtered;
+    if (screen->immersive.enabled) {
+        filtered = *event;
+        if (sc_immersive_handle_event(&screen->immersive, &filtered)) {
+            return;
+        }
+        event = &filtered;
+    }
     switch (event->type) {
         case SC_EVENT_OPEN_WINDOW: {
             struct sc_size *size = event->user.data1;
@@ -1181,7 +1202,8 @@ sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
                                                      screen->orientation);
             sc_screen_show_initial_window(screen);
 
-            if (sc_screen_is_relative_mode(screen)) {
+            if (!screen->immersive.enabled
+                    && sc_screen_is_relative_mode(screen)) {
                 // Capture mouse on start
                 sc_mouse_capture_set_active(&screen->mc, true);
             }
@@ -1226,6 +1248,7 @@ sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
             return;
         case SC_EVENT_DEVICE_DISCONNECTED:
             assert(!screen->disconnected);
+            sc_immersive_disconnect(&screen->immersive);
             screen->disconnected = true;
             if (!screen->window_shown) {
                 // No window open
@@ -1251,7 +1274,7 @@ sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
             return;
     }
 
-    if (sc_screen_is_relative_mode(screen)
+    if (!screen->immersive.enabled && sc_screen_is_relative_mode(screen)
             && sc_mouse_capture_handle_event(&screen->mc, event)) {
         // The mouse capture handler consumed the event
         return;
@@ -1304,7 +1327,9 @@ sc_screen_handle_disconnection(struct sc_screen *screen) {
                 sc_screen_interrupt_disconnect(screen);
                 return;
             default:
-                sc_input_manager_handle_event(&screen->im, &event);
+                if (!sc_immersive_handle_event(&screen->immersive, &event)) {
+                    sc_input_manager_handle_event(&screen->im, &event);
+                }
         }
     }
 }

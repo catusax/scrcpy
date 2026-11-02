@@ -84,6 +84,11 @@ sc_aoa_push_input_with_ack_to_wait(struct sc_aoa *aoa,
                                    const struct sc_hid_input *hid_input,
                                    uint64_t ack_to_wait);
 
+// Queue a transition all-up report even when ordinary input is saturated.
+bool
+sc_aoa_push_input_critical(struct sc_aoa *aoa,
+                           const struct sc_hid_input *hid_input);
+
 static inline bool
 sc_aoa_push_input(struct sc_aoa *aoa, const struct sc_hid_input *hid_input) {
     return sc_aoa_push_input_with_ack_to_wait(aoa, hid_input,

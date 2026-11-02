@@ -92,9 +92,9 @@ sc_controller_destroy(struct sc_controller *controller) {
     sc_receiver_destroy(&controller->receiver);
 }
 
-bool
-sc_controller_push_msg(struct sc_controller *controller,
-                       const struct sc_control_msg *msg) {
+static bool
+sc_controller_enqueue_msg(struct sc_controller *controller,
+                          const struct sc_control_msg *msg, bool critical) {
     // RESIZE_DISPLAY messages are handled separately
     assert(msg->type != SC_CONTROL_MSG_TYPE_RESIZE_DISPLAY);
 
@@ -109,7 +109,7 @@ sc_controller_push_msg(struct sc_controller *controller,
         if (was_empty) {
             sc_cond_signal(&controller->msg_cond);
         }
-    } else if (!sc_control_msg_is_droppable(msg)) {
+    } else if (critical || !sc_control_msg_is_droppable(msg)) {
         bool ok = sc_vecdeque_push(&controller->queue, *msg);
         if (ok) {
             pushed = true;
@@ -123,6 +123,18 @@ sc_controller_push_msg(struct sc_controller *controller,
     sc_mutex_unlock(&controller->mutex);
 
     return pushed;
+}
+
+bool
+sc_controller_push_msg(struct sc_controller *controller,
+                       const struct sc_control_msg *msg) {
+    return sc_controller_enqueue_msg(controller, msg, false);
+}
+
+bool
+sc_controller_push_msg_critical(struct sc_controller *controller,
+                                const struct sc_control_msg *msg) {
+    return sc_controller_enqueue_msg(controller, msg, true);
 }
 
 void

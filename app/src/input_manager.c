@@ -434,8 +434,10 @@ sc_input_manager_process_key(struct sc_input_manager *im,
     // The second condition is necessary to ignore the release of the modifier
     // key (because in this case mod is 0).
     uint16_t mods = im->sdl_shortcut_mods;
-    bool is_shortcut = sc_shortcut_mods_is_shortcut_mod(mods, mod)
-                    || sc_shortcut_mods_is_shortcut_key(mods, sdl_keycode);
+    bool immersive = im->screen->immersive.active;
+    bool is_shortcut = !immersive
+                   && (sc_shortcut_mods_is_shortcut_mod(mods, mod)
+                       || sc_shortcut_mods_is_shortcut_key(mods, sdl_keycode));
 
     if (down && !repeat && !disconnected) {
         if (sdl_keycode == im->last_keycode && mod == im->last_mod) {
@@ -448,7 +450,7 @@ sc_input_manager_process_key(struct sc_input_manager *im,
     }
 
     // Shortcuts that do not involve the MOD key
-    switch (sdl_keycode) {
+    switch (immersive ? SDLK_UNKNOWN : sdl_keycode) {
         case SDLK_F11:
             if (video && !repeat && down) {
                 bool alt = mod & SDL_KMOD_ALT;

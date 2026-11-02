@@ -62,6 +62,16 @@ sc_key_processor_process_key(struct sc_key_processor *kp,
     }
 }
 
+static void
+sc_key_processor_release_all(struct sc_key_processor *kp) {
+    struct sc_keyboard_aoa *kb = DOWNCAST(kp);
+    struct sc_hid_input hid_input;
+    sc_hid_keyboard_generate_release_all(&kb->hid, &hid_input);
+    if (!sc_aoa_push_input_critical(kb->aoa, &hid_input)) {
+        LOGW("Could not push AOA HID input (release all)");
+    }
+}
+
 bool
 sc_keyboard_aoa_init(struct sc_keyboard_aoa *kb, struct sc_aoa *aoa) {
     kb->aoa = aoa;
@@ -84,6 +94,7 @@ sc_keyboard_aoa_init(struct sc_keyboard_aoa *kb, struct sc_aoa *aoa) {
         // Never forward text input via HID (all the keys are injected
         // separately)
         .process_text = NULL,
+        .release_all = sc_key_processor_release_all,
     };
 
     // Clipboard synchronization is requested over the control socket, while HID

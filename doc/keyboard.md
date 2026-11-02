@@ -134,3 +134,60 @@ debugging disabled (see [OTG](otg.md)).
 Note: On Windows, it may only work in [OTG mode](otg.md), not while mirroring
 (it is not possible to open a USB device if it is already open by another
 process like the _adb daemon_).
+
+
+## Immersive host keyboard capture
+
+On Linux, `--immersive` requests capture of the host keyboard while sending
+keyboard input to the device using a HID keyboard. This does not select a
+keyboard transport: `-K` selects UHID normally or AOA in OTG mode, and
+`--keyboard=uhid` and `--keyboard=aoa` are also supported.
+
+```bash
+scrcpy -K --immersive
+scrcpy --otg -K --immersive
+```
+
+Capture starts when the window is first focused. While the window is focused,
+press the Host key to release or recapture. The default Host key is right Ctrl
+(`rctrl`); it can be changed with `--host-key` to `lctrl`, `rctrl`, `lalt`,
+`ralt`, `lsuper` or `rsuper`. The Host key is reserved and is not sent to the
+device. Prefer the default right Ctrl or another modifier not used by a desktop
+shortcut: a desktop may intercept a custom Alt or Super Host key while capture
+is released. The toggle works only while the scrcpy window is focused.
+
+While capture is active, keyboard shortcuts (including Alt/Super combinations
+and F11) are forwarded to the device instead of performing scrcpy actions.
+While capture is released, normal scrcpy shortcuts work again. Focus loss,
+hiding or pausing the window, or device disconnection releases capture. Focus
+regain or resume does not automatically recapture; focus the window and press
+the Host key.
+
+While capture is active, scrcpy pauses SDL text input so the host input method
+does not handle captured HID keystrokes as text; the text-input state from
+before capture is restored when capture is released. Android-side input method
+handling is unchanged; HID continues sending physical key events. Caps Lock is
+unchanged.
+Non-immersive use and SDK keyboard input are unchanged. This only affects SDL's
+window text-input path: desktop-global shortcuts or input-method menus may
+still be handled by the window system or compositor.
+
+Standalone left/right Super (Windows) presses are forwarded as physical GUI
+modifier down/up transitions, unless that key is reserved as Host. Android may
+still reserve Meta/Super keys or combinations in its own system policy before
+dispatching them to an application. Host capture and delivery to Android do not
+override that policy or guarantee that an app receives `KEYCODE_META_LEFT` or
+`KEYCODE_META_RIGHT`.
+
+If a relative HID mouse is enabled, the Host key releases and recaptures both
+the keyboard and mouse. While released, relative mouse motion, buttons and
+wheel events are suppressed until the Host key recaptures; clicking does not
+recapture. Keyboard capture does not require a relative mouse.
+
+The window title shows whether scrcpy considers capture active or released.
+This state does not guarantee that every host shortcut is intercepted. The
+Linux window system or compositor may refuse capture or retain its own
+shortcuts. On Wayland, behavior depends on compositor support and policy; under
+XWayland, the compositor may also restrict keyboard grabs (for example, Mutter
+has an `xwayland-allow-grabs` setting). OS-reserved shortcuts may remain
+unavailable. This feature is not supported on Windows or macOS.
